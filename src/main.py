@@ -93,8 +93,7 @@ X_ten_years_fertlizers = Australia_Fertilizers_Products_Agricultural.drop(['Area
 print(X_ten_years_fertlizers)
 print(X_ten_years_fertlizers.columns)
 fertilizer_2017 = Australia_Fertilizers_Products_Agricultural['Y2017']
-print(fertilizer_2017)
-print(fertilizer_2017.columns)
+print("2017 \n",fertilizer_2017)
 
 # In[8]:
 
@@ -104,9 +103,7 @@ X_ten_years_pesticides = Australia_Pesticides.drop(['Area Code', 'Area', 'Item C
 print(X_ten_years_pesticides)
 print(X_ten_years_pesticides.columns)
 pesticides_2017 = Australia_Pesticides['Y2017']
-print(pesticides_2017)
-print(pesticides_2017.columns)
-
+print("2017 \n",pesticides_2017)
 
 # %<br>
 # Drop Ammonia anyhydrous and Ammonia nitrate from 2007 to 2013. It has not been used in these years.
@@ -118,7 +115,7 @@ print(X_ten_years_fertlizers)
 print(X_ten_years_fertlizers.columns)
 fertilizer_2017 = fertilizer_2017.drop([602, 607], axis=0)
 print(fertilizer_2017)
-print(fertilizer_2017.columns)
+
 
 
 # %<br>
@@ -131,6 +128,10 @@ print(fertilizer_2017.columns)
 interpolate_2009_to_2016 = X_ten_years_fertlizers.interpolate()
 interpolate_2009_to_2016
 interpolate_2017 = fertilizer_2017.interpolate()
+print("interpolated 2017 fertilizers \n",interpolate_2017)
+# TODO: Don't just interpolate. Use the means of the previous 2  years
+# interpolate_pesticides_2017 = pesticides_2017.interpolate()
+# print("interpolated 2017 pesticides \n",interpolate_pesticides_2017)
 
 
 # %<br>
@@ -148,6 +149,10 @@ interpolate_2004_2005=interpolate_2004_2005.drop([602,607], axis=0)
 interpolate_2004_2005['mean'] = interpolate_2004_2005.mean(axis=1)
 print("Mean of 2004 and 2005 ==== \n")
 print(interpolate_2004_2005)
+pesticides_2015_2016 = Australia_Pesticides[['Y2015','Y2016']]
+pesticides_2015_2016['mean'] = pesticides_2015_2016.mean(axis=1)
+print("Mean of 2015 and 2016 === \n")
+print(pesticides_2015_2016)
 
 
 # Use this for 2007
@@ -183,10 +188,17 @@ print(interpolate_2009_2010)
 # In[14]:
 
 
+# Fertilizers
 i=0
 for i in range(1,16):
        interpolate_2009_to_2016.iloc[0:i,1:2] = interpolate_2004_2005['mean'].iloc[0:i]
 
+#Pesticides
+j=0
+for j in range(1,7):
+       pesticides_2017.iloc[0:j,] = pesticides_2015_2016['mean'].iloc[0:j]
+
+print(pesticides_2017)
 
 # ## Populate 2008 nan values with computed mean
 
@@ -209,6 +221,7 @@ interpolate_2009_to_2016.iloc[15, 2] = 171351.00
 X_ten_years_fertilizers_interpolated = interpolate_2009_to_2016
 X_ten_years_fertilizers_interpolated
 fertilizer_2017_interpolated = interpolate_2017
+print(fertilizer_2017_interpolated)
 
 
 # #### TODO: Combine pesticdes and fertilizers data
@@ -220,9 +233,9 @@ print(X_ten_years_pesticides)
 print(X_ten_years_fertilizers_interpolated)
 
 pesticides_without_Item = X_ten_years_pesticides.copy().drop(['Item'], axis=1)
-pesticides_2017_wo_item = pesticides_2017.copy().drop(['Item'], axis=1)
+pesticides_2017_wo_item = pesticides_2017
 fertilizers_without_Item = X_ten_years_fertilizers_interpolated.copy().drop(['Item'], axis=1)
-fertilizer_2017_wo_item = fertilizer_2017_interpolated.copy().drop(['Item'], axis=1)
+fertilizer_2017_wo_item = fertilizer_2017_interpolated
 # torch.tensor(X_ten_years_pesticides.values.astype(np.float64))
 print(X_ten_years_pesticides.values)
 print(X_ten_years_fertilizers_interpolated.values)
@@ -244,10 +257,10 @@ print("\t Fertilizers tensor", fertilizers_tensor)
 # In[18]:
 
 
-print(pesticides_tensor.shape)
-print(fertilizers_tensor.shape)
-print(pesticides_2017_tensor.shape)
-print(fertilizer_2017_tensor.shape)
+print("Train : \n",pesticides_tensor.shape)
+print("Train: \n",fertilizers_tensor.shape)
+print("Test: \n",pesticides_2017_tensor.shape)
+print("Test: \n",fertilizer_2017_tensor.shape)
 
 # TODO: Normalize inputs before concatenation
 
@@ -330,10 +343,10 @@ Y_train_ten = yield_tensor
 # Test Y
 Y_test = yield_tensor_2017
 
-print(X_train_ten.shape)
-print(Y_train_ten.shape)
-print(X_test.shape)
-print(Y_test.shape)
+print("Train X: \n",X_train_ten.shape)
+print("Train Y: \n",Y_train_ten.shape)
+print("Test X: \n",X_test.shape)
+print("Test Y: \n",Y_test.shape)
 
 # In[21]:
 
