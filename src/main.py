@@ -258,7 +258,7 @@ def load_data():
        yield_without_Item = Australia_yield_2007_to_2016.copy().drop(['Item'],axis=1)
        yield_without_Item_2017 = Australia_yield_2017.copy().drop(['Item'],axis=1)
 
-       print(yield_without_Item)
+       print("2017 yield: \n ",yield_without_Item)
        yield_tensor = torch.from_numpy(yield_without_Item.values)
        print("Shape: ", yield_tensor.shape)
        print("\t Yield tensor", yield_tensor)
@@ -279,11 +279,9 @@ def load_data():
        
        return [X_train_ten, Y_train_ten, X_test, Y_test]
 #%%
+training_input, training_output, test_input, test_output = load_data()
+print("Training input mean: \n",training_output.nan_to_num(nan=0.0).mean())
 
-training_input = load_data()[0]
-training_ouput = load_data()[1]
-test_input = load_data()[2]
-test_output = load_data()[3]
 
 x = training_input
 y = training_ouput
@@ -292,18 +290,26 @@ y = training_ouput
 # Transforms
 
 # Training data
-x_tensor = torch.Tensor(x.float())
-x_data = (x - x.mean())/(x.max() - x.min())
-test = torch.Tensor([[0,4,5]])
-x_tensor_normalized = x.normal_()
-y_data = (y.normal_())
+train_x_mean = x.nan_to_num(nan=0.0).mean()
+train_x_std = x.nan_to_num(nan=0.0).std()
+x_tensor_normalized = x.normal_(mean=train_x_mean, std=train_x_std)
+train_y_mean = y.nan_to_num(nan=0.0).mean()
+train_y_std = y.nan_to_num(nan=0.0).std()
+y_data = y.normal_(mean=train_y_mean, std=train_y_std)
 
 #%%
 # Test data
 transformed_test_x = torch.Tensor(test_input.float())
-transformed_test_x = transformed_test_x.normal_()
+x_mean = transformed_test_x.nan_to_num(nan=0.0).mean()
+# print(x_mean)
+x_std = transformed_test_x.std()
+# print(x_std)
+transformed_test_x = transformed_test_x.normal_(mean=x_mean, std=x_std)
 transformed_test_y = torch.Tensor(test_output.float())
-transformed_test_y = transformed_test_y.normal_()
+y_mean = transformed_test_y.nan_to_num(nan=0.0).mean()
+y_std = transformed_test_y.nan_to_num(nan=0.0).std()
+transformed_test_y = transformed_test_y.normal_(mean=y_mean, std=y_std)
+
 #%%
 #%%
 # Define model
@@ -314,11 +320,14 @@ class NeuralNet(nn.Module):
               self.linear2 = nn.Linear(H1, H2)
               self.linear3 = nn.Linear(H2, H3)
               self.linear4 = nn.Linear(H3, D_out)
+              self.relu = nn.ReLU()
+              self.sigmoid = nn.Sigmoid()
        def forward(self, x):
-              y_pred = self.linear1(x)
-              y_pred = self.linear2(y_pred)
-              y_pred = self.linear3(y_pred)
+              y_pred = self.linear1(x)              
+              y_pred = self.linear2(y_pred)              
+              y_pred = self.linear3(y_pred)              
               y_pred = self.linear4(y_pred)
+              y_pred = self.relu(y_pred)
               return y_pred
 
 # In[ ]:
@@ -421,7 +430,8 @@ def train_crop_yield(config):
        
        train_subset_x, train_subset_y, val_subset_x, val_subset_y = random_split_training(x_by_years, y_by_years)
        
-       for epoch in range(100):
+       # TODO: 100000 epochs
+       for epoch in range(3):
               running_loss = 0.0
               epoch_steps = 0
               # Zero the accumulated gradients
@@ -435,7 +445,7 @@ def train_crop_yield(config):
               running_loss += loss.item()
               epoch_steps += 1
               if epoch%5==4:
-                     print("[%d] loss: %.3f"%(epoch+1, running_loss/epoch_steps))
+                     print("[%d][%d] loss: %.3f"%(epoch+1, running_loss/epoch_steps))
                      running_loss=0.0
        
        # Validation loss
@@ -484,7 +494,7 @@ reporter=CLIReporter(metric_columns=["loss","accuracy", "training_iteration"])
 result = tune.run(
        partial(train_crop_yield),
        config=config,
-       num_samples=21,
+       num_samples=15,
        scheduler=scheduler
 )
 
@@ -508,4 +518,6 @@ num_correct, test_acc = test_accuracy(best_trained_model, device)
 print("Best trial test set accuracy: {}".format(test_acc))
 
 #%%
+# %%
+
 # %%
