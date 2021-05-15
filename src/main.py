@@ -299,6 +299,10 @@ test = torch.Tensor([[0,4,5]])
 x_tensor_normalized = x.normal_()
 y_data = (y.normal_())
 
+transformed_x = torch.reshape(x_tensor_normalized,(1,220))
+transformed_y = y_data
+y = torch.reshape(y, (1,1010))
+
 #%%
 # Test data
 transformed_test_x = torch.Tensor(test_input.float())
@@ -407,7 +411,7 @@ def train_crop_yield(config):
        
        train_subset_x, train_subset_y, val_subset_x, val_subset_y = random_split_training(x_by_years, y_by_years)
        
-       for epoch in range(100):
+       for epoch in range(500):
               running_loss = 0.0
               epoch_steps = 0
               # Zero the accumulated gradients
@@ -450,13 +454,13 @@ def test_accuracy(net, device='cpu'):
        
 # Define hyperparameters
 config = {
-       "H1":tune.sample_from(lambda _: 2**np.random.randint(8,10)),
-       "H2":tune.sample_from(lambda _: 2**np.random.randint(9,11)),
-       "H3":tune.sample_from(lambda _: 2**np.random.randint(9,11)),
-       "H4":tune.sample_from(lambda _: 2**np.random.randint(10,12)),
-       "H5":tune.sample_from(lambda _: 2**np.random.randint(10,12)),
-       "H6":tune.sample_from(lambda _: 2**np.random.randint(8,9)),
-       "H7":tune.sample_from(lambda _: 2**np.random.randint(8,9)),
+       "H1":tune.sample_from(lambda _: 2**np.random.randint(7,9)),
+       "H2":tune.sample_from(lambda _: 2**np.random.randint(7,9)),
+       "H3":tune.sample_from(lambda _: 2**np.random.randint(7,12)),
+       "H4":tune.sample_from(lambda _: 2**np.random.randint(7,12)),
+       "H5":tune.sample_from(lambda _: 2**np.random.randint(7,12)),
+       "H6":tune.sample_from(lambda _: 2**np.random.randint(8,10)),
+       "H7":tune.sample_from(lambda _: 2**np.random.randint(8,10)),
        "H8":tune.sample_from(lambda _: 2**np.random.randint(7,9)),
        "H9":tune.sample_from(lambda _: 2**np.random.randint(7,9)),
        "lr":tune.loguniform(1e-2, 1e-1)
