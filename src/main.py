@@ -21,7 +21,10 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 # ## Read pesticides and fertilizer products data
 
 # In[3]:
-
+#%%
+train_loss=[]
+val_loss_list=[]
+#%%
 #%%
 def load_data():
        pesticides_frame = pd.read_csv("Inputs_Pesticides_Use_E_All_Data_NOFLAG.csv", engine='python')
@@ -308,17 +311,26 @@ transformed_test_y = transformed_test_y.normal_()
 #%%
 # Define model
 class NeuralNet(nn.Module):
-       def __init__(self, D_in, H1, H2, H3, D_out):
+       def __init__(self, D_in, H1, H2, H3, H4, D_out):
               super(NeuralNet, self).__init__()
-              self.linear1 = nn.Linear(D_in, H1)
-              self.linear2 = nn.Linear(H1, H2)
-              self.linear3 = nn.Linear(H2, H3)
-              self.linear4 = nn.Linear(H3, D_out)
-       def forward(self, x):
-              y_pred = self.linear1(x)
-              y_pred = self.linear2(y_pred)
-              y_pred = self.linear3(y_pred)
+              # self.linear1 = nn.Linear(D_in, H1)
+              self.conv1 = nn.Conv1d(D_in, H1, 3)
+              # self.linear2 = nn.Linear(H1, H2)
+              self.conv2 = nn.Conv1d(H1, H2, 3)
+              # self.linear3 = nn.Linear(H2, H3)
+              self.conv3 = nn.Conv1d(H2, H3, 3)
+              self.linear4 = nn.Linear(H3, H4)
+              self.linear5 = nn.Linear(H4, D_out)
+              self.relu = nn.ReLU()
+              self.maxpool = nn.MaxPool1d(3, stride=2)
+       def forward(self,x):
+              y_pred = self.conv1(x)
+              y_pred = self.maxpool(y_pred)
+              y_pred = self.conv2(y_pred)
+              y_pred = self.maxpool(y_pred)
+              y_pred = self.conv3(y_pred)
               y_pred = self.linear4(y_pred)
+              y_pred = self.linear5(y_pred)
               return y_pred
 
 # In[ ]:
@@ -377,40 +389,41 @@ def random_split_training(trainset_x, trainset_y):
 # In[76]:
 
 # loss_fn = torch.nn.MSELoss(reduction='sum')
-loss_fn = torch.nn.MSELoss()
-losses2 = []
-H1, H2, H3 = 500, 1000, 200
-D_in, D_out = 220, 1010
-model2 = NeuralNet(D_in, H1, H2, H3, D_out)
-optimizer = torch.optim.SGD(model2.parameters(), lr=1e-4)
+# loss_fn = torch.nn.MSELoss()
+# losses2 = []
+# H1, H2, H3 = 500, 1000, 200
+# D_in, D_out = 220, 1010
+# model2 = NeuralNet(D_in, H1, H2, H3, D_out)
+# optimizer = torch.optim.SGD(model2.parameters(), lr=1e-4)
 
-transformed_x = torch.reshape(x_tensor_normalized,(1,220))
-transformed_y = y_data
-y = torch.reshape(y, (1,1010))
+# transformed_x = torch.reshape(x_tensor_normalized,(1,220))
+# transformed_y = y_data
+# y = torch.reshape(y, (1,1010))
 
-#%%
-# print(y.shape)
+# #%%
+# # print(y.shape)
 
-for t in range(3):
-       print("Training loop \n")
-       print("Input ",transformed_x.float())
-       y_pred=model2(transformed_x.float())
-       print("Model: ", model2)
-       loss = loss_fn(y_pred, transformed_y.reshape(1,1010).float())
-       print("Loss: ",loss)
-       print(t, loss.item())
-       losses2.append(loss.item())
-       optimizer.zero_grad()
-       loss.backward()
+# for t in range(3):
+#        print("Training loop \n")
+#        print("Input ",transformed_x.float())
+#        y_pred=model2(transformed_x.float())
+#        print("Model: ", model2)
+#        loss = loss_fn(y_pred, transformed_y.reshape(1,1010).float())
+#        print("Loss: ",loss)
+#        print(t, loss.item())
+#        losses2.append(loss.item())
+#        optimizer.zero_grad()
+#        loss.backward()
+
+#%%           
        
-#%%     
 # Function to train and validate data. Save the best model based on validation loss
 # 
 # params:
 # config: hyperparameter search space
 # 
 def train_crop_yield(config):
-       net = NeuralNet(176, config['H1'], config['H2'], config['H3'], 8)
+       net = NeuralNet(176, config['H1'], config['H2'], config['H3'], config['H4'], 8)
        criterion = torch.nn.MSELoss()
        optimizer = torch.optim.SGD(net.parameters(), lr=config["lr"], momentum=0.9)
        # train_set = torch.cat((transformed_x, transformed_y), dim=0)
@@ -421,38 +434,57 @@ def train_crop_yield(config):
        
        train_subset_x, train_subset_y, val_subset_x, val_subset_y = random_split_training(x_by_years, y_by_years)
        
-       for epoch in range(100):
+       
+       for epoch in range(2):
               running_loss = 0.0
               epoch_steps = 0
               # Zero the accumulated gradients
               optimizer.zero_grad()
               # forward + backward + optimize
-              output = net(train_subset_x.float().reshape(1,176))
-              loss = criterion(output, train_subset_y.float())
-              loss.backward()
-              optimizer.step()
-              # print statistics
-              running_loss += loss.item()
-              epoch_steps += 1
-              if epoch%5==4:
-                     print("[%d] loss: %.3f"%(epoch+1, running_loss/epoch_steps))
-                     running_loss=0.0
+              # print("Flattened: \n",train_subset_x.float().flatten())
+              x_tensor = torch.empty((config["H1"], 176, 3))
+              print(x_tensor.shape)
+              # train_subset_x.float().flatten()
+              output = net(x_tensor)
+              print("Output shape: \n",output.shape)
+              # loss = criterion(output, train_subset_y.float())
+              # loss.backward()
+              # optimizer.step()
+              # # print statistics
+              # running_loss += loss.item()
+              # epoch_steps += 1
+              # train_loss.append((running_loss/epoch_steps))
+              # if epoch%5==4:
+              #        print("[%d] loss: %.3f"%(epoch+1, running_loss/epoch_steps))
+              #        # loss_stats['train'].append((running_loss/epoch_steps))
+              #        running_loss=0.0
+                     
+       # TODO: Save model
+       # Check gradients
+       # Create new model for validation
+       # Check if gradients are same
+       # If not, assign trained gradients to validation model
+       # apply_gradients()
        
        # Validation loss
-       net = NeuralNet(44, config['H1'], config['H2'], config['H3'], 2)
+       net = NeuralNet(44, config['H1'], config['H2'], config['H3'], config['H4'], 2)
        val_loss = 0.0
        val_steps = 0
        total = 0
        correct = 0
        with torch.no_grad():
-              val_output = net(val_subset_x.float().reshape(1,44))
+              val_output = net(val_subset_x.float().reshape(1,44), config['H1'], 3)
               total = val_subset_y.size(0)
-              correct = torch.sum(torch.abs(val_output-val_subset_y)<torch.abs(0.10*val_subset_y))
+              correct = torch.sum(torch.abs(val_output-val_subset_y)<torch.abs(0.50*val_subset_y))
               loss = criterion(val_output, val_subset_y.float())
               val_loss += loss.cpu().numpy()
+              val_loss_list.append(val_loss)
               torch.save((net.state_dict(), optimizer.state_dict()), './trained_net.dat')
               tune.report(loss=(val_loss), accuracy=(correct/total))
        print("\n Finished Training \n")
+       # TODO: plot_graph(training_loss, val_loss)
+       # print("Collected training losses: \n",train_loss)
+       # print("Collected validation losses: \n", val_loss_list)
               
 #%%
 # Evaluation:
@@ -467,7 +499,8 @@ config = {
        "H1":tune.sample_from(lambda _: 2**np.random.randint(5,12)),
        "H2":tune.sample_from(lambda _: 2**np.random.randint(5,12)),
        "H3":tune.sample_from(lambda _: 2**np.random.randint(5,12)),
-       "lr":tune.loguniform(1e-4, 1e-1)
+       "H4":tune.sample_from(lambda _: 2**np.random.randint(5,12)),
+       "lr":tune.loguniform(1e-3, 1e-1)
 }
 
 # Scheduler. Randomly try out combination of hyperparameters
@@ -484,7 +517,7 @@ reporter=CLIReporter(metric_columns=["loss","accuracy", "training_iteration"])
 result = tune.run(
        partial(train_crop_yield),
        config=config,
-       num_samples=21,
+       num_samples=5,
        scheduler=scheduler
 )
 
@@ -494,10 +527,13 @@ print("Best trial config: {}".format(best_trial.config))
 print("Best trial final validation loss: {}".format(best_trial.last_result["loss"]))
 print("Best trial fnal validation accuracy: {}".format(best_trial.last_result["accuracy"]))
 
-best_trained_model = NeuralNet(22, best_trial.config["H1"], best_trial.config["H2"], best_trial.config["H3"],101)
+
+best_trained_model = NeuralNet(22, best_trial.config["H1"], best_trial.config["H2"], best_trial.config["H3"],best_trial.config["H4"],101)
 
 device="cpu"
 best_trained_model.to(device)
+
+
 
 # best_checkpoint_dir = best_trial.checkpoint.value
 # print(" \n",type(best_trial.evaluated_params))
@@ -508,4 +544,12 @@ num_correct, test_acc = test_accuracy(best_trained_model, device)
 print("Best trial test set accuracy: {}".format(test_acc))
 
 #%%
+# %%
+
+# %%
+
+# %%
+
+# %%
+
 # %%
