@@ -12,6 +12,7 @@ import pandas as pd
 print(pd.__version__)
 from torch.utils.data import DataLoader,ConcatDataset
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
@@ -308,17 +309,30 @@ transformed_test_y = transformed_test_y.normal_()
 #%%
 # Define model
 class NeuralNet(nn.Module):
-       def __init__(self, D_in, H1, H2, H3, D_out):
+       def __init__(self, D_in, H1, H2, H3, H4, H5, H6, H7, H8, H9, D_out):
               super(NeuralNet, self).__init__()
               self.linear1 = nn.Linear(D_in, H1)
               self.linear2 = nn.Linear(H1, H2)
               self.linear3 = nn.Linear(H2, H3)
-              self.linear4 = nn.Linear(H3, D_out)
+              self.linear4 = nn.Linear(H3, H4)
+              self.linear5 = nn.Linear(H4, H5)
+              self.linear6 = nn.Linear(H5, H6)
+              self.linear7 = nn.Linear(H6, H7)
+              self.linear8 = nn.Linear(H7, H8)
+              self.linear9 = nn.Linear(H8, H9)
+              self.linear10 = nn.Linear(H9, D_out)
+              self.relu = nn.ReLU()
        def forward(self, x):
               y_pred = self.linear1(x)
-              y_pred = self.linear2(y_pred)
+              y_pred = torch.tanh(self.linear2(y_pred))
               y_pred = self.linear3(y_pred)
-              y_pred = self.linear4(y_pred)
+              y_pred = torch.tanh(self.linear4(y_pred))
+              y_pred = self.linear5(y_pred)
+              y_pred = torch.tanh(self.linear6(y_pred))
+              y_pred = self.linear7(y_pred)
+              y_pred = torch.sigmoid(self.linear8(y_pred))
+              y_pred = self.linear9(y_pred)
+              y_pred = torch.sigmoid(self.linear10(y_pred))
               return y_pred
 
 # In[ ]:
@@ -375,34 +389,6 @@ def random_split_training(trainset_x, trainset_y):
 # 
 
 # In[76]:
-
-# loss_fn = torch.nn.MSELoss(reduction='sum')
-loss_fn = torch.nn.MSELoss()
-losses2 = []
-H1, H2, H3 = 500, 1000, 200
-D_in, D_out = 220, 1010
-model2 = NeuralNet(D_in, H1, H2, H3, D_out)
-optimizer = torch.optim.SGD(model2.parameters(), lr=1e-4)
-
-transformed_x = torch.reshape(x_tensor_normalized,(1,220))
-transformed_y = y_data
-y = torch.reshape(y, (1,1010))
-
-#%%
-# print(y.shape)
-
-for t in range(3):
-       print("Training loop \n")
-       print("Input ",transformed_x.float())
-       y_pred=model2(transformed_x.float())
-       print("Model: ", model2)
-       loss = loss_fn(y_pred, transformed_y.reshape(1,1010).float())
-       print("Loss: ",loss)
-       print(t, loss.item())
-       losses2.append(loss.item())
-       optimizer.zero_grad()
-       loss.backward()
-       
 #%%     
 # Function to train and validate data. Save the best model based on validation loss
 # 
@@ -410,7 +396,7 @@ for t in range(3):
 # config: hyperparameter search space
 # 
 def train_crop_yield(config):
-       net = NeuralNet(176, config['H1'], config['H2'], config['H3'], 8)
+       net = NeuralNet(176, config['H1'], config['H2'], config['H3'], config["H4"], config["H5"], config["H6"], config["H7"],config["H8"],config["H9"],8)
        criterion = torch.nn.MSELoss()
        optimizer = torch.optim.SGD(net.parameters(), lr=config["lr"], momentum=0.9)
        # train_set = torch.cat((transformed_x, transformed_y), dim=0)
@@ -439,7 +425,7 @@ def train_crop_yield(config):
                      running_loss=0.0
        
        # Validation loss
-       net = NeuralNet(44, config['H1'], config['H2'], config['H3'], 2)
+       net = NeuralNet(44, config['H1'], config['H2'], config['H3'], config["H4"], config["H5"], config["H6"], config["H7"],config["H8"],config["H9"],2)
        val_loss = 0.0
        val_steps = 0
        total = 0
@@ -464,10 +450,16 @@ def test_accuracy(net, device='cpu'):
        
 # Define hyperparameters
 config = {
-       "H1":tune.sample_from(lambda _: 2**np.random.randint(5,12)),
-       "H2":tune.sample_from(lambda _: 2**np.random.randint(5,12)),
-       "H3":tune.sample_from(lambda _: 2**np.random.randint(5,12)),
-       "lr":tune.loguniform(1e-4, 1e-1)
+       "H1":tune.sample_from(lambda _: 2**np.random.randint(8,10)),
+       "H2":tune.sample_from(lambda _: 2**np.random.randint(9,11)),
+       "H3":tune.sample_from(lambda _: 2**np.random.randint(9,11)),
+       "H4":tune.sample_from(lambda _: 2**np.random.randint(10,12)),
+       "H5":tune.sample_from(lambda _: 2**np.random.randint(10,12)),
+       "H6":tune.sample_from(lambda _: 2**np.random.randint(8,9)),
+       "H7":tune.sample_from(lambda _: 2**np.random.randint(8,9)),
+       "H8":tune.sample_from(lambda _: 2**np.random.randint(7,9)),
+       "H9":tune.sample_from(lambda _: 2**np.random.randint(7,9)),
+       "lr":tune.loguniform(1e-2, 1e-1)
 }
 
 # Scheduler. Randomly try out combination of hyperparameters
@@ -484,7 +476,7 @@ reporter=CLIReporter(metric_columns=["loss","accuracy", "training_iteration"])
 result = tune.run(
        partial(train_crop_yield),
        config=config,
-       num_samples=21,
+       num_samples=10,
        scheduler=scheduler
 )
 
@@ -494,7 +486,7 @@ print("Best trial config: {}".format(best_trial.config))
 print("Best trial final validation loss: {}".format(best_trial.last_result["loss"]))
 print("Best trial fnal validation accuracy: {}".format(best_trial.last_result["accuracy"]))
 
-best_trained_model = NeuralNet(22, best_trial.config["H1"], best_trial.config["H2"], best_trial.config["H3"],101)
+best_trained_model = NeuralNet(22, best_trial.config["H1"], best_trial.config["H2"], best_trial.config["H3"],best_trial.config["H4"],best_trial.config["H5"],best_trial.config["H6"],best_trial.config["H7"],best_trial.config["H8"],best_trial.config["H9"],101)
 
 device="cpu"
 best_trained_model.to(device)
@@ -508,4 +500,10 @@ num_correct, test_acc = test_accuracy(best_trained_model, device)
 print("Best trial test set accuracy: {}".format(test_acc))
 
 #%%
+# %%
+
+# %%
+
+# %%
+
 # %%
