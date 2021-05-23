@@ -12,6 +12,7 @@ print(pd.__version__)
 from torch.utils.data import DataLoader,ConcatDataset
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.init import xavier_uniform_
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
@@ -295,7 +296,7 @@ y = training_ouput
 x_tensor = torch.Tensor(x.float())
 x_data = (x - x.mean())/(x.max() - x.min())
 test = torch.Tensor([[0,4,5]])
-x_tensor_normalized = x.normal_()
+x_tensor_normalized = x_tensor.normal_()
 y_data = (y.normal_())
 
 transformed_x = torch.reshape(x_tensor_normalized,(1,220))
@@ -315,20 +316,37 @@ class NeuralNet(nn.Module):
        def __init__(self, D_in, H1, H2, H3, H4, H5, H6, D_out):
               super(NeuralNet, self).__init__()
               self.linear1 = nn.Linear(D_in, H1)
+              self.batchNorm1 = nn.BatchNorm1d(H1)
+              xavier_uniform_(self.linear1.weight)
               self.linear2 = nn.Linear(H1, H2)
+              xavier_uniform_(self.linear2.weight)
               self.linear3 = nn.Linear(H2, H3)
+              xavier_uniform_(self.linear3.weight)
               self.linear4 = nn.Linear(H3, H4)
+              xavier_uniform_(self.linear4.weight)
               self.linear5 = nn.Linear(H4, H5)
+              xavier_uniform_(self.linear5.weight)
               self.linear6 = nn.Linear(H5, H6)
+              xavier_uniform_(self.linear6.weight)
               self.linear7 = nn.Linear(H6, D_out)
+              xavier_uniform_(self.linear7.weight)
+              self.dropout = nn.Dropout(p=0.5)
               self.relu = nn.ReLU()
        def forward(self, x):
-              y_pred = torch.tanh(self.linear1(x))
-              y_pred = self.linear2(y_pred)
-              y_pred = torch.tanh(self.linear3(y_pred))
+              y_pred = self.linear1(x)
+              # y_pred = self.batchNorm1(y_pred)
+              y_pred = torch.tanh(y_pred)
+              y_pred = self.dropout(y_pred)
+              y_pred = torch.tanh(self.linear2(y_pred))
+              y_pred = self.dropout(y_pred)
+              y_pred = self.linear3(y_pred)
+              y_pred = self.dropout(y_pred)
               y_pred = self.linear4(y_pred)
+              y_pred = self.dropout(y_pred)
               y_pred = torch.tanh(self.linear5(y_pred))
-              y_pred = self.linear6(y_pred)
+              y_pred = self.dropout(y_pred)
+              y_pred = torch.tanh(self.linear6(y_pred))
+              y_pred = self.dropout(y_pred)
               y_pred = torch.sigmoid(self.linear7(y_pred))
               return y_pred
 
@@ -395,16 +413,19 @@ def random_split_training(trainset_x, trainset_y):
 def train_crop_yield(config):
        net = NeuralNet(176, config['H1'], config['H2'], config['H3'], config["H4"], config["H5"], config["H6"],8)
        criterion = torch.nn.MSELoss()
-       optimizer = torch.optim.SGD(net.parameters(), lr=config["lr"], momentum=0.9)
+       optimizer = torch.optim.SGD(net.parameters(), lr=config["lr"], weight_decay=0.01,momentum=0.9)
        # train_set = torch.cat((transformed_x, transformed_y), dim=0)
        # test_set = torch.cat((test_input, test_output), dim=0)
        
        x_by_years = transformed_x.reshape(22,10)
        y_by_years = transformed_y.reshape(101,10)
        
+       # x_by_years = x.reshape(22,10)
+       # y_by_years = y.reshape(101,10)
+       
        train_subset_x, train_subset_y, val_subset_x, val_subset_y = random_split_training(x_by_years, y_by_years)
        
-       for epoch in range(50000):
+       for epoch in range(500):
               running_loss = 0.0
               epoch_steps = 0
               # Zero the accumulated gradients
@@ -427,6 +448,7 @@ def train_crop_yield(config):
        val_steps = 0
        total = 0
        correct = 0
+       net.eval()
        with torch.no_grad():
               val_output = net(val_subset_x.float().reshape(1,44))
               total = val_subset_y.size(0)
@@ -453,7 +475,7 @@ config = {
        "H4":tune.sample_from(lambda _: 2**np.random.randint(7,12)),
        "H5":tune.sample_from(lambda _: 2**np.random.randint(5,7)),
        "H6":tune.sample_from(lambda _: 2**np.random.randint(7,9)),
-       "lr":tune.loguniform(1e-2, 1e-1)
+       "lr":tune.loguniform(0.01, 0.1)
 }
 
 # Scheduler. Randomly try out combination of hyperparameters
