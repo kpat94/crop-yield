@@ -12,6 +12,7 @@ print(pd.__version__)
 from torch.utils.data import DataLoader,ConcatDataset
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.init import xavier_uniform_
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
@@ -178,47 +179,48 @@ def load_data():
        fertilizers_without_Item = X_ten_years_fertilizers_interpolated.copy().drop(['Item'], axis=1)
        fertilizer_2017_wo_item = fertilizer_2017_interpolated
        # torch.tensor(X_ten_years_pesticides.values.astype(np.float64))
-       print(X_ten_years_pesticides.values)
-       print(X_ten_years_fertilizers_interpolated.values)
+       print("Pesticides names:\n",X_ten_years_pesticides)
+       print("Fertilizers names: \n",X_ten_years_fertilizers_interpolated)
        print(pesticides_2017_wo_item.values)
        print(fertilizer_2017_wo_item.values)
 
-       print(pesticides_without_Item)
+       # print(pesticides_without_Item)
        pesticides_tensor = torch.from_numpy(pesticides_without_Item.values)
-       print("\t Pesticides tensor", pesticides_tensor)
+       # print("\t Pesticides tensor", pesticides_tensor)
        pesticides_2017_tensor = torch.from_numpy(pesticides_2017_wo_item.values)
 
-       print(fertilizers_without_Item)
-       fertilizers_tensor = torch.from_numpy(fertilizers_without_Item.values)
+       # print(fertilizers_without_Item)
+       fertilizers_tensor = torch.from_numpy(np.nan_to_num(fertilizers_without_Item.values))
        fertilizer_2017_tensor = torch.from_numpy(fertilizer_2017_wo_item.values)
-       print("\t Fertilizers tensor", fertilizers_tensor)
+       # print("\t Fertilizers tensor", fertilizers_tensor)
 
        # In[18]:
-       print("Train : \n",pesticides_tensor.shape)
-       print("Train: \n",fertilizers_tensor.shape)
-       print("Test: \n",pesticides_2017_tensor.shape)
-       print("Test: \n",fertilizer_2017_tensor.shape)
+       # print("Train Pest: \n",pesticides_tensor)
+       # print("Train Fert: \n",fertilizers_tensor)
+       # print("Test: \n",pesticides_2017_tensor.shape)
+       # print("Test: \n",fertilizer_2017_tensor.shape)
 
        # TODO: Normalize inputs before concatenation
        pesticides_and_fertilizers = torch.cat((pesticides_tensor, fertilizers_tensor), dim=0)
-       print(pesticides_and_fertilizers.shape)
-       print("\n")
-       print("Training X data for 10 years: ",pesticides_and_fertilizers)
-       print("\n")
+       # print(pesticides_and_fertilizers.shape)
+       # print("\n")
+       # print("Training X data for 10 years: ",pesticides_and_fertilizers.shape)
+       # print("\n")
        pesticides_and_fertilizers_2017 = torch.cat((pesticides_2017_tensor, fertilizer_2017_tensor), dim=0)
-       print(pesticides_and_fertilizers_2017.shape)
-       print("\n")
-       print("Testing X data for 1 year: ",pesticides_and_fertilizers_2017)
-       print("\n")
+       # print(pesticides_and_fertilizers_2017.shape)
+       # print("\n")
+       # print("Testing X data for 1 year: ",pesticides_and_fertilizers_2017)
+       # print("\n")
 
        # Training + Validation data : Input
        X_train_ten = pesticides_and_fertilizers;
+       # print("X train 10: \n",X_train_ten)
        X_test = pesticides_and_fertilizers_2017
 
        # #### TODO: Create output vector
 
        # In[19]:
-       print(yield_frame.columns)
+       # print(yield_frame.columns)
        #%%
        yield_frame.head
        #%%
@@ -226,7 +228,7 @@ def load_data():
        Production = yield_frame['Element']=="Production"
        Australia_yield = yield_frame[Australia]
        Australia_yield_production = Australia_yield[Production]
-       print(yield_frame[Australia])
+       # print(yield_frame[Australia])
        #%%
        # Get the yield data for the year 2017 only
        Australia_yield_2017 = Australia_yield_production.drop(['Area Code', 'Area', 'Item Code', 'Element Code','Element',
@@ -235,47 +237,47 @@ def load_data():
               'Y1988', 'Y1989', 'Y1990', 'Y1991', 'Y1992', 'Y1993', 'Y1994', 'Y1995', 'Y1996', 'Y1997', 'Y1998', 'Y1999', 'Y2000', 'Y2001', 
               'Y2002', 'Y2003', 'Y2004', 'Y2005', 'Y2006', 'Y2007', 'Y2008', 'Y2009', 'Y2010', 'Y2011', 'Y2012', 'Y2013', 'Y2014', 'Y2015', 
               'Y2016', 'Y2018'], axis=1)
-       print("\n")
-       print("Test Y data: ",Australia_yield_2017)
-       print("\n")
-       print(Australia_yield_2017.columns)
-       print(Australia_yield_2017['Item'].unique())
-       print("Number of unique crops in 2017: ",len(Australia_yield_2017['Item'].unique()))
+       # print("\n")
+       # print("Test Y data: ",Australia_yield_2017)
+       # print("\n")
+       # print(Australia_yield_2017.columns)
+       # print(Australia_yield_2017['Item'].unique())
+       # print("Number of unique crops in 2017: ",len(Australia_yield_2017['Item'].unique()))
 
        Australia_yield_2007_to_2016 = Australia_yield_production.drop(['Area Code', 'Area', 'Item Code', 'Element Code','Element',
               'Unit','Y1961', 'Y1962', 'Y1963', 'Y1964', 'Y1965', 'Y1966', 'Y1967', 'Y1968', 'Y1969', 'Y1970', 'Y1971', 'Y1972', 'Y1973', 
               'Y1974', 'Y1975', 'Y1976', 'Y1977', 'Y1978', 'Y1979', 'Y1980', 'Y1981', 'Y1982', 'Y1983', 'Y1984', 'Y1985', 'Y1986', 'Y1987',
               'Y1988', 'Y1989', 'Y1990', 'Y1991', 'Y1992', 'Y1993', 'Y1994', 'Y1995', 'Y1996', 'Y1997', 'Y1998', 'Y1999', 'Y2000', 'Y2001', 
               'Y2002', 'Y2003', 'Y2004', 'Y2005', 'Y2006', 'Y2017','Y2018'], axis=1)
-       print(Australia_yield_2007_to_2016.columns)
+       # print(Australia_yield_2007_to_2016.columns)
        print(Australia_yield_2007_to_2016['Item'].unique())
-       print("\n")
-       print("Train Y data: ",Australia_yield_2007_to_2016)
-       print("\n")
-       print("Number of unique crops from 2007 to 2016",len(Australia_yield_2007_to_2016['Item'].unique()))
+       # print("\n")
+       # print("Train Y data: ",Australia_yield_2007_to_2016)
+       # print("\n")
+       # print("Number of unique crops from 2007 to 2016",len(Australia_yield_2007_to_2016['Item'].unique()))
 
        # In[20]:
        yield_without_Item = Australia_yield_2007_to_2016.copy().drop(['Item'],axis=1)
        yield_without_Item_2017 = Australia_yield_2017.copy().drop(['Item'],axis=1)
 
-       print(yield_without_Item)
+       # print(yield_without_Item)
        yield_tensor = torch.from_numpy(yield_without_Item.values)
-       print("Shape: ", yield_tensor.shape)
-       print("\t Yield tensor", yield_tensor)
-       print(yield_without_Item_2017)
-       yield_tensor_2017 = torch.from_numpy(yield_without_Item_2017.values)
-       print("Shape: ", yield_tensor_2017.shape)
-       print("\t Yield tensor", yield_tensor_2017)
+       # print("Shape: ", yield_tensor.shape)
+       # print("\t Yield tensor", yield_tensor)
+       # print(yield_without_Item_2017)
+       yield_tensor_2017 = torch.from_numpy(np.nan_to_num(yield_without_Item_2017.values))
+       # print("Shape: ", yield_tensor_2017.shape)
+       # print("\t Yield tensor", yield_tensor_2017)
 
        # Training + Validation: Output
        Y_train_ten = yield_tensor
        # Test Y
        Y_test = yield_tensor_2017
 
-       print("Train X: \n",X_train_ten.shape)
-       print("Train Y: \n",Y_train_ten.shape)
-       print("Test X: \n",X_test.shape)
-       print("Test Y: \n",Y_test.shape)
+       # print("Train X: \n",X_train_ten.shape)
+       # print("Train Y: \n",Y_train_ten.shape)
+       # print("Test X: \n",X_test.shape)
+       # print("Test Y: \n",Y_test.shape)
        
        return [X_train_ten, Y_train_ten, X_test, Y_test]
 #%%
@@ -293,9 +295,9 @@ y = training_ouput
 
 # Training data
 x_tensor = torch.Tensor(x.float())
+y_tensor = torch.Tensor(y.float())
 x_data = (x - x.mean())/(x.max() - x.min())
-test = torch.Tensor([[0,4,5]])
-x_tensor_normalized = x.normal_()
+x_tensor_normalized = x_tensor.normal_()
 y_data = (y.normal_())
 
 transformed_x = torch.reshape(x_tensor_normalized,(1,220))
@@ -308,6 +310,7 @@ transformed_test_x = torch.Tensor(test_input.float())
 transformed_test_x = transformed_test_x.normal_()
 transformed_test_y = torch.Tensor(test_output.float())
 transformed_test_y = transformed_test_y.normal_()
+
 #%%
 #%%
 # Define model
@@ -315,20 +318,36 @@ class NeuralNet(nn.Module):
        def __init__(self, D_in, H1, H2, H3, H4, H5, H6, D_out):
               super(NeuralNet, self).__init__()
               self.linear1 = nn.Linear(D_in, H1)
+              self.batchNorm1 = nn.BatchNorm1d(H1)
+              xavier_uniform_(self.linear1.weight)
               self.linear2 = nn.Linear(H1, H2)
+              xavier_uniform_(self.linear2.weight)
               self.linear3 = nn.Linear(H2, H3)
+              xavier_uniform_(self.linear3.weight)
               self.linear4 = nn.Linear(H3, H4)
+              xavier_uniform_(self.linear4.weight)
               self.linear5 = nn.Linear(H4, H5)
+              xavier_uniform_(self.linear5.weight)
               self.linear6 = nn.Linear(H5, H6)
+              xavier_uniform_(self.linear6.weight)
               self.linear7 = nn.Linear(H6, D_out)
+              xavier_uniform_(self.linear7.weight)
+              self.dropout = nn.Dropout(p=0.5)
               self.relu = nn.ReLU()
        def forward(self, x):
-              y_pred = torch.tanh(self.linear1(x))
-              y_pred = self.linear2(y_pred)
-              y_pred = torch.tanh(self.linear3(y_pred))
+              y_pred = self.linear1(x)
+              y_pred = torch.tanh(y_pred)
+              y_pred = self.dropout(y_pred)
+              y_pred = torch.tanh(self.linear2(y_pred))
+              y_pred = self.dropout(y_pred)
+              y_pred = self.linear3(y_pred)
+              y_pred = self.dropout(y_pred)
               y_pred = self.linear4(y_pred)
+              y_pred = self.dropout(y_pred)
               y_pred = torch.tanh(self.linear5(y_pred))
-              y_pred = self.linear6(y_pred)
+              y_pred = self.dropout(y_pred)
+              y_pred = torch.tanh(self.linear6(y_pred))
+              y_pred = self.dropout(y_pred)
               y_pred = torch.sigmoid(self.linear7(y_pred))
               return y_pred
 
@@ -363,7 +382,6 @@ def get_accuracy(model, predicted, actual, threshold_percentage):
     
 
 def random_split_training(trainset_x, trainset_y):
-       # TODO:
        # Select 2 random numbers between 1 and 10
        # Use them to index into x and y.
        # That will give us the training and validation set
@@ -395,16 +413,14 @@ def random_split_training(trainset_x, trainset_y):
 def train_crop_yield(config):
        net = NeuralNet(176, config['H1'], config['H2'], config['H3'], config["H4"], config["H5"], config["H6"],8)
        criterion = torch.nn.MSELoss()
-       optimizer = torch.optim.SGD(net.parameters(), lr=config["lr"], momentum=0.9)
-       # train_set = torch.cat((transformed_x, transformed_y), dim=0)
-       # test_set = torch.cat((test_input, test_output), dim=0)
+       optimizer = torch.optim.SGD(net.parameters(), lr=config["lr"], weight_decay=0.01,momentum=0.9)
        
        x_by_years = transformed_x.reshape(22,10)
        y_by_years = transformed_y.reshape(101,10)
        
        train_subset_x, train_subset_y, val_subset_x, val_subset_y = random_split_training(x_by_years, y_by_years)
        
-       for epoch in range(50000):
+       for epoch in range(500000):
               running_loss = 0.0
               epoch_steps = 0
               # Zero the accumulated gradients
@@ -427,6 +443,7 @@ def train_crop_yield(config):
        val_steps = 0
        total = 0
        correct = 0
+       net.eval()
        with torch.no_grad():
               val_output = net(val_subset_x.float().reshape(1,44))
               total = val_subset_y.size(0)
@@ -453,7 +470,7 @@ config = {
        "H4":tune.sample_from(lambda _: 2**np.random.randint(7,12)),
        "H5":tune.sample_from(lambda _: 2**np.random.randint(5,7)),
        "H6":tune.sample_from(lambda _: 2**np.random.randint(7,9)),
-       "lr":tune.loguniform(1e-2, 1e-1)
+       "lr":tune.loguniform(0.01, 0.1)
 }
 
 # Scheduler. Randomly try out combination of hyperparameters
@@ -480,15 +497,11 @@ print("Best trial config: {}".format(best_trial.config))
 print("Best trial final validation loss: {}".format(best_trial.last_result["loss"]))
 print("Best trial fnal validation accuracy: {}".format(best_trial.last_result["accuracy"]))
 
-best_trained_model = NeuralNet(22, best_trial.config["H1"], best_trial.config["H2"], best_trial.config["H3"],best_trial.config["H4"],best_trial.config["H5"],best_trial.config["H6"],101)
+best_trained_model = NeuralNet(22, best_trial.config["H1"], best_trial.config["H2"], best_trial.config["H3"],
+                               best_trial.config["H4"],best_trial.config["H5"],best_trial.config["H6"],101)
 
 device="cpu"
 best_trained_model.to(device)
-
-# best_checkpoint_dir = best_trial.checkpoint.value
-# print(" \n",type(best_trial.evaluated_params))
-# model_state, optimizer_state = torch.load(os.path.join(best_checkpoint_dir, "checkpoint"))
-# best_trained_model.load_state_dict(model_state)
 
 num_correct, test_acc = test_accuracy(best_trained_model, device)
 print("Best trial test set accuracy: {}".format(test_acc))
