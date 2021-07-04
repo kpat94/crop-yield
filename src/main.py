@@ -497,15 +497,11 @@ print("Best trial config: {}".format(best_trial.config))
 print("Best trial final validation loss: {}".format(best_trial.last_result["loss"]))
 print("Best trial fnal validation accuracy: {}".format(best_trial.last_result["accuracy"]))
 
-best_trained_model = NeuralNet(22, best_trial.config["H1"], best_trial.config["H2"], best_trial.config["H3"],best_trial.config["H4"],best_trial.config["H5"],best_trial.config["H6"],101)
+best_trained_model = NeuralNet(22, best_trial.config["H1"], best_trial.config["H2"], best_trial.config["H3"],
+                               best_trial.config["H4"],best_trial.config["H5"],best_trial.config["H6"],101)
 
 device="cpu"
 best_trained_model.to(device)
-
-# best_checkpoint_dir = best_trial.checkpoint.value
-# print(" \n",type(best_trial.evaluated_params))
-# model_state, optimizer_state = torch.load(os.path.join(best_checkpoint_dir, "checkpoint"))
-# best_trained_model.load_state_dict(model_state)
 
 num_correct, test_acc = test_accuracy(best_trained_model, device)
 print("Best trial test set accuracy: {}".format(test_acc))
